@@ -1,3 +1,36 @@
-*.env
-venv
-*.log
+# Byte-compiled / caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environments
+.env
+venv/
+.venv/
+
+# Editors
+.vscode/
+.idea/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Model / training artifacts
+artifacts/
+bert-headlines/
+t5-headlines/
+gpt2-headlines/
+examples/.ipynb_checkpoints/
+
+# Scratch notebooks at the repo root; the kept ones live in examples/
+/*.ipynb
