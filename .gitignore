@@ -26,11 +26,5 @@ htmlcov/
 coverage.xml
 
 # Model / training artifacts
-artifacts/
-bert-headlines/
-t5-headlines/
-gpt2-headlines/
-examples/.ipynb_checkpoints/
-
 # Scratch notebooks at the repo root; the kept ones live in examples/
 /*.ipynb
