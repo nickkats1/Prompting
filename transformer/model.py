@@ -6,13 +6,13 @@ from transformer.positional_encoding import PositionalEncoding
 from transformer.encoder import TransformerEncoderLayer
 
 class TransformerModel(nn.Module):
-    def __init__(self, vocab_size, embed_dim, num_heads, num_layers, ff_dim, output_dim):
+    def __init__(self, vocab_size, embed_dim, num_heads, num_layers, ff_dim, output_dim, max_len: int):
         super().__init__()
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
 
         self.embedding = nn.Embedding(vocab_size, embed_dim)
-        self.pos_encoding = PositionalEncoding(embed_dim)
+        self.pos_encoding = PositionalEncoding(embed_dim, max_len)
         self.layers = nn.ModuleList([
             TransformerEncoderLayer(embed_dim, num_heads, ff_dim)
             for _ in range(num_layers)

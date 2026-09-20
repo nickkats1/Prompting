@@ -23,10 +23,10 @@ This repo covers various techniques with modern nlp and Transformer-based LLMs i
 - **Elementary NLP Tasks**: [nlp-intro](examples/nlp-intro.ipynb)
 - **Bert**: [bert](examples/bert_example.ipynb)
 - **GPT2-base-model**: [gpt2](examples/GPT2-prompting-example.ipynb)
-- **Llama-instruct**: [llama-instruct]
-- **Types of prompting and types of prompts**: [prompting](prompting.ipynb)
+- **Types of prompting and types of prompts**: [prompting](/home/nick/github-projects/prompting-base-models/prompting.ipynb)
 - **Tool Calling**: [tools](tools.ipynb)
 - **Supervised Fine-Tuning and LoRA**: [gpt2-instruct](examples/SFT.ipynb)
+- **The Transformer from scratch**: [transformer](transformer.ipynb)
 
 **Note**: This is not tuned well. I did SFT on a `GTX-1080` gpu and could only run a single epoch. 
 
@@ -39,16 +39,9 @@ You should have access to a gpu for torch and a hugging face api key which is fr
 
 `AI` is currently the most over-used word in the world right now and I am actually surprised about sheer amount of people who know literally nothing about it and view ChatGPT as all-knowing god. The word `AI` is a umbrella terms that means a lot of things. Usually the general public, means a Large Language model when they talk about `ai` or some variant of the transformer (with vision, audio ect) Image and audio transformers will not be covered in this repo. 
 
-## The Transformer
-
-The transformer came out in 2017's landmark paper "Attention is All you Need". This introduces a architecture with a encoder block and a decoder block. The decoder-only autoregressive part is what most LLM's are trained on. The decoder-only part, only predicts the next token: [example](examples/GPT2-prompting-example.ipynb), [transformer](transformer.ipynb)
-
-
 
 
 ## License
-
-
 License[MIT](LICENSE)
 
 
