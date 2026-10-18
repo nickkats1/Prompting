@@ -26,5 +26,11 @@ htmlcov/
 coverage.xml
 
 # Model / training artifacts
+checkpoint-*/
+*.safetensors
+*.pt
+*.pth
+runs/
+.ipynb_checkpoints/
 # Scratch notebooks at the repo root; the kept ones live in examples/
 /*.ipynb
