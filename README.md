@@ -17,7 +17,7 @@ This project explores how language models represent text, predict tokens, and us
 - **Text representations:** Tokenization, TF-IDF, embeddings, and contextual BERT vectors.
 - **Language modeling:** A character-level Transformer built from individual attention heads, feed-forward layers, and residual blocks.
 - **Prompting and generation:** GPT-2 sampling, message roles, worked reasoning examples, and Qwen3 thinking mode.
-- **Retrieval and tools:** BM25 and dense retrieval built directly with BM25S, Sentence Transformers, and FAISS; web-search tool calling through LangChain.
+- **Agentic Tools:** web-search tool calling through LangChain.
 - **Post-training:** Supervised fine-tuning of Llama 3.2 1B, followed by Direct Preference Optimization (DPO).
 
 ## Notebooks
@@ -30,10 +30,9 @@ Open a topic directly or follow the sequence below. Saved outputs let you inspec
 | 02 | [BERT: words in context](examples/bert_example.ipynb) | Compare contextual vectors for **orange** as a fruit and a color using cosine similarity. |
 | 03 | [A Transformer from scratch](examples/transformer.ipynb) | Build, train, and sample from a small character-level language model. |
 | 04 | [GPT-2: generating text](examples/GPT2-prompting-example.ipynb) | Compare sampled continuations at two temperatures with the same prompt and seed. |
-| 05 | [Prompting and thinking](examples/prompting.ipynb) | Message roles, standard and chain-of-thought examples, and Qwen3 thinking mode. |
+| 05 | [Prompting and thinking](examples/prompting.ipynb) | Message roles, standard and reasoning model examples. |
 | 06 | [Tool calling](examples/tool-calling.ipynb) | Execute a requested web search and return its results to the conversation. |
-| 07 | [Retrieval-augmented generation](examples/rag-example.ipynb) | Compare BM25 and embedding search over *1984*, then generate an answer with passage references. |
-| 08 | [Supervised fine-tuning and DPO](examples/sft-dpo.ipynb) | Train Llama 3.2 1B on instructions and preference pairs, evaluate, and save checkpoints. |
+| 07 | [Supervised fine-tuning and DPO](examples/sft-dpo.ipynb) | Train Llama 3.2 1B on instructions and preference pairs, evaluate, and save checkpoints. |
 
 ## Quick start
 
@@ -50,7 +49,7 @@ cd examples
 jupyter lab transformer.ipynb
 ```
 
-Select **Prompting & Language Models** as the kernel and run cells in order. Launch Jupyter from `examples/`; the book examples use the included `data/orwell1984.pdf` in the repository root.
+Select **Prompting & Language Models** as the kernel and run cells in order. Launch Jupyter from `examples/`; the book examples use the included `data/2038.pdf` in the repository root.
 
 ### Dependencies by notebook
 
@@ -63,7 +62,6 @@ Install the packages for the notebook you want to run in the same environment. T
 | BERT | `torch transformers pandas` |
 | GPT-2 and prompting | `torch transformers accelerate` |
 | Tool calling | `python-dotenv langchain-openai langchain-core langchain-community ddgs` |
-| RAG | `torch transformers sentence-transformers faiss-cpu bm25s pypdf` |
 | SFT and DPO | `torch transformers accelerate datasets trl` |
 
 For NLP, also run `python -m spacy download en_core_web_sm`. The notebook downloads NLTK's `punkt_tab` resource. Jupyter supplies IPython for notebook displays.
@@ -73,7 +71,7 @@ For NLP, also run `python -m spacy download en_core_web_sm`. The notebook downlo
 | Examples | Requirements |
 | --- | --- |
 | Transformer | CPU; uses CUDA when available. |
-| BERT, GPT-2, prompting, RAG | Hugging Face model downloads. CPU execution is possible; model downloads and generation can take time. |
+| BERT, GPT-2, prompting | Hugging Face model downloads. CPU execution is possible; model downloads and generation can take time. |
 | Llama SFT/DPO | A GPU supporting the notebook's BF16 and TF32 settings, sufficient memory for full-weight training, and Hugging Face access to Llama 3.2. |
 | Tool calling | An OpenAI API key with available credits, plus internet access for search. |
 
@@ -115,11 +113,7 @@ The default model has **66,424 parameters**: two attention heads, 48 embedding d
 
 The notebook’s CPU run reduces sampled validation loss from **4.653 to 2.638** after 300 updates. Generated text remains rough at this training budget. Increase `max_steps` and `max_train_seconds` to experiment with longer runs.
 
-## Retrieval and tool use
-
-The [RAG notebook](examples/rag-example.ipynb) splits the extracted book into passages of up to 150 words. BM25 searches by lexical relevance; Sentence Transformers embeds the passages, and FAISS searches normalized vectors using inner product. Both retrievers receive the same question so their results can be compared.
-
-The retrieved passages are supplied to **Qwen2.5-0.5B-Instruct** with their original passage IDs. The answer and source passages are displayed together. Passage length is set by word count; when changing the source text, check token lengths against the embedding model’s input limit.
+## Tool use / Agents
 
 The [tool-calling notebook](examples/tool-calling.ipynb) demonstrates another workflow: the model requests a search, Python executes it, and the results return as tool messages before the final response. Search results and generated citations still need to be checked.
 
@@ -142,10 +136,6 @@ The training notebook saves under `/content/` in its Colab runtime. Download che
 
 ## Scope and limitations
 
-These are educational examples and short training runs. The Transformer learns character-level patterns from *1984*; it is not a pretrained assistant. BERT similarities, retrieval results, and individual generated responses illustrate model behavior rather than establish benchmark performance.
-
-The prompting notebook compares standard and chain-of-thought examples using Qwen2.5-0.5B, then demonstrates Qwen3-0.6B thinking mode. It does not reproduce the experiments in the original chain-of-thought paper.
-
 The SFT/DPO metrics are saved Colab results. Running those cells again requires suitable GPU hardware and model access. The project has no maintained automated test suite or pinned dependency environment, so package changes may require adjustments.
 
 ## Repository layout
@@ -154,7 +144,7 @@ The SFT/DPO metrics are saved Colab results. Running those cells again requires 
 examples/              Eight notebooks with explanations and saved outputs
 transformer/           PyTorch model, sampling, and data utilities
 tools/search.py        Web-search tool
-data/orwell1984.pdf    Source text for PDF and book examples
+data/2038.pdf          Source text for PDF and book examples
 assets/images/         Notebook illustrations
 ```
 
@@ -162,8 +152,6 @@ assets/images/         Notebook illustrations
 
 - [Attention Is All You Need](https://arxiv.org/abs/1706.03762)
 - [BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding](https://arxiv.org/abs/1810.04805)
-- [Chain-of-Thought Prompting Elicits Reasoning in Large Language Models](https://arxiv.org/abs/2201.11903)
-- [Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks](https://arxiv.org/abs/2005.11401)
 - [Direct Preference Optimization: Your Language Model Is Secretly a Reward Model](https://arxiv.org/abs/2305.18290)
 
 ## License
