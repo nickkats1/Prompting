@@ -1,24 +1,52 @@
 import torch
 import torch.nn as nn
 
-from transformer.attention import MultiHeadAttention
-from transformer.mlp import MLP
+from transformer.gelu import GELU
+from transformer.attention import SelfAttention
+from transformer.config import CONFIG
+from transformer.feed_forward import FeedForward
+from transformer.layer_norm import LayerNorm
 
 
-class Block(nn.Module):
-    def __init__(self, n_head: int, n_embed: int, context_length: int) -> None:
+
+class TransformerBlock(nn.Module):
+    def __init__(self, cfg):
         super().__init__()
-        self.ln1 = nn.LayerNorm(n_embed)
-        self.attn = MultiHeadAttention(n_head, n_embed, context_length)
-        self.ln2 = nn.LayerNorm(n_embed)
-        self.mlp = MLP(n_embed)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = x + self.attn(self.ln1(x))
-        x = x + self.mlp(self.ln2(x))
+        
+        self.attn = SelfAttention(
+            d_in=cfg['emb_dim'],
+            d_out=cfg['emb_dim'],
+            context_length=cfg['context_length'],
+            num_heads=cfg['n_heads'],
+            dropout=cfg['drop_rate'],
+            qkv_bias=cfg['qkv_bias']
+        )
+        
+        
+        # first feed forward layer
+        
+        self.ff = FeedForward(cfg)
+        self.norm1 = LayerNorm(cfg['emb_dim'])
+        self.norm2 = LayerNorm(cfg['emb_dim'])
+        
+        self.drop = nn.Dropout(cfg['drop_rate'])
+        
+    def forward(self, x):
+        short = x
+        
+        x = self.norm1(x)
+        x = self.attn(x)
+        x = self.drop(x)
+        x = x + short
+        
+        
+        short = x
+        
+        x = self.norm2(x)
+        x = self.ff(x)
+        x = self.drop(x)
+        x = x + short
+        
         return x
-
-    def forward_embedding(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        residual = x + self.attn(self.ln1(x))
-        hidden = self.mlp.forward_embedding(self.ln2(residual))
-        return hidden, residual
+    
+            

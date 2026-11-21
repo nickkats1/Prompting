@@ -1,57 +1,64 @@
-import math
-
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
-class Head(nn.Module):
-    tril: torch.Tensor
 
-    def __init__(self, head_size: int, n_embed: int, context_length: int) -> None:
+class SelfAttention(nn.Module):
+    def __init__(self, d_in, d_out, context_length, dropout, num_heads, qkv_bias=False):
         super().__init__()
-        assert (
-            head_size > 0 and n_embed > 0 and context_length > 0
-        ), "head_size, n_embed, and context_length must be positive"
+        assert d_out % num_heads == 0, "d_out must be divisible by n_heads"
 
-        self.key = nn.Linear(n_embed, head_size, bias=False)
-        self.query = nn.Linear(n_embed, head_size, bias=False)
-        self.value = nn.Linear(n_embed, head_size, bias=False)
-        self.register_buffer(
-            "tril",
-            torch.tril(torch.ones(context_length, context_length)),
-            persistent=False,
-        )
+        self.d_out = d_out
+        self.num_heads = num_heads
+        self.head_dim = d_out // num_heads
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        _, T, _ = x.shape
-        assert (
-            0 < T <= self.tril.size(0)
-        ), "sequence length must be between 1 and context_length"
+        self.W_query = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.W_key = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.W_value = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.out_proj = nn.Linear(d_out, d_out)
+        self.dropout = nn.Dropout(dropout)
+        self.register_buffer("mask", torch.triu(torch.ones(context_length, context_length), diagonal=1))
 
-        head_size = self.key.out_features
-        k = self.key(x)
-        q = self.query(x)
-        scale_factor = 1 / math.sqrt(head_size)
-        attn_weights = q @ k.transpose(-2, -1) * scale_factor
-        attn_weights = attn_weights.masked_fill(self.tril[:T, :T] == 0, float("-inf"))
-        attn_weights = F.softmax(attn_weights, dim=-1)
-        v = self.value(x)
-        return attn_weights @ v
+    def forward(self, x):
+        b, num_tokens, d_in = x.shape
+
+        keys = self.W_key(x)
+        queries = self.W_query(x)
+        values = self.W_value(x)
 
 
-class MultiHeadAttention(nn.Module):
-    def __init__(self, n_head: int, n_embed: int, context_length: int) -> None:
-        super().__init__()
-        assert n_head > 0 and n_embed > 0, "n_head and n_embed must be positive"
-        assert n_embed % n_head == 0, "n_embed must be divisible by n_head"
+        keys = keys.view(b, num_tokens, self.num_heads, self.head_dim)
+        values = values.view(b, num_tokens, self.num_heads, self.head_dim)
+        queries = queries.view(b, num_tokens, self.num_heads, self.head_dim)
 
-        head_size = n_embed // n_head
-        self.heads = nn.ModuleList(
-            [Head(head_size, n_embed, context_length) for _ in range(n_head)]
-        )
-        self.proj = nn.Linear(n_embed, n_embed)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = torch.cat([h(x) for h in self.heads], dim=-1)
-        return self.proj(x)
+        keys = keys.transpose(1, 2)
+        queries = queries.transpose(1, 2)
+        values = values.transpose(1, 2)
+
+
+        attn_scores = queries @ keys.transpose(2, 3)
+
+
+        mask_bool = self.mask.bool()[:num_tokens, :num_tokens]
+
+  
+        attn_scores.masked_fill_(mask_bool, -torch.inf)
+
+        attn_weights = torch.softmax(attn_scores / keys.shape[-1]**0.5, dim=-1)
+        attn_weights = self.dropout(attn_weights)
+
+        context_vec = (attn_weights @ values).transpose(1, 2)
+
+        context_vec = context_vec.reshape(b, num_tokens, self.d_out)
+        context_vec = self.out_proj(context_vec)
+
+        return context_vec
+        
+        
+        
+        
+        
+        
+        
+        

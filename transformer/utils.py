@@ -1,39 +1,125 @@
 import torch
-from torch.utils.data import Dataset
+import tiktoken
 
 
-class CharTokenizer:
-    def __init__(self, text: str) -> None:
-        self.chars = sorted(set(text))
-        self.char_to_id = {ch: i for i, ch in enumerate(self.chars)}
-        self.id_to_char = {i: ch for i, ch in enumerate(self.chars)}
-
-    def __len__(self) -> int:
-        return len(self.chars)
-
-    def encode(self, text: str) -> list[int]:
-        return [self.char_to_id[ch] for ch in text]
-
-    def decode(self, ids) -> str:
-        return "".join(self.id_to_char[int(i)] for i in ids)
+def text_to_token_ids(text, tokenizer):
+    encoded = tokenizer.encode(text)
+    encoded_tensor = torch.tensor(encoded).unsqueeze(0)
+    return encoded_tensor
 
 
-class NextTokenDataset(Dataset):
-    def __init__(self, ids: list[int], block_size: int) -> None:
-        if not isinstance(block_size, int) or block_size <= 0:
-            raise ValueError("block_size must be a positive integer")
-        if len(ids) <= block_size:
-            raise ValueError("ids must contain at least block_size + 1 tokens")
-        self.ids = torch.tensor(ids, dtype=torch.long)
-        self.block_size = block_size
+def token_ids_to_text(token_ids, tokenizer):
+    flat = token_ids.squeeze(0)
+    return tokenizer.decode(flat.tolist())
 
-    def __len__(self) -> int:
-        return len(self.ids) - self.block_size
 
-    def __getitem__(self, i: int) -> tuple[torch.Tensor, torch.Tensor]:
-        if i < 0:
-            i += len(self)
-        if not 0 <= i < len(self):
-            raise IndexError("dataset index out of range")
-        chunk = self.ids[i : i + self.block_size + 1]
-        return chunk[:-1], chunk[1:]
+def generate(model, idx, max_new_tokens, context_size, temperature=0.0, top_k=None, eos_id=None):
+    
+    if eos_id is not None and idx.shape[0] != 1:
+        raise ValueError("EOS stopping currently supports batch size 1 only")
+
+    for _ in range(max_new_tokens):
+        idx_cond = idx[:, -context_size:]
+        with torch.no_grad():
+            logits = model(idx_cond)
+        logits = logits[:, -1, :]
+
+        if top_k is not None:
+            top_logits, _ = torch.topk(logits, top_k)
+            min_val = top_logits[:, -1]
+            logits = torch.where(logits < min_val, torch.tensor(float("-inf")).to(logits.device), logits)
+
+
+        if temperature > 0.0:
+            logits = logits / temperature
+
+            logits = logits - logits.max(dim=-1, keepdim=True).values
+
+            probs = torch.softmax(logits, dim=-1)
+
+
+            idx_next = torch.multinomial(probs, num_samples=1)
+
+
+        else:
+            idx_next = torch.argmax(logits, dim=-1, keepdim=True)
+
+        if idx_next == eos_id:
+            break
+
+        idx = torch.cat((idx, idx_next), dim=1)
+
+    return idx
+
+
+def calc_loss_batch(input_batch, target_batch, model, device):
+    input_batch, target_batch = input_batch.to(device), target_batch.to(device)
+    logits = model(input_batch)
+    loss = torch.nn.functional.cross_entropy(logits.flatten(0, 1), target_batch.flatten())
+    return loss
+
+
+def calc_loss_loader(data_loader, model, device, num_batches=None):
+    total_loss = 0.
+    if len(data_loader) == 0:
+        return float("nan")
+    elif num_batches is None:
+        num_batches = len(data_loader)
+    else:
+        num_batches = min(num_batches, len(data_loader))
+    for i, (input_batch, target_batch) in enumerate(data_loader):
+        if i < num_batches:
+            loss = calc_loss_batch(input_batch, target_batch, model, device)
+            total_loss += loss.item()
+        else:
+            break
+    return total_loss / num_batches
+
+
+def evaluate_model(model, train_loader, val_loader, device, eval_iter):
+    model.eval()
+    with torch.no_grad():
+        train_loss = calc_loss_loader(train_loader, model, device, num_batches=eval_iter)
+        val_loss = calc_loss_loader(val_loader, model, device, num_batches=eval_iter)
+    model.train()
+    return train_loss, val_loss
+
+
+
+def generate_text_simple(model, idx, max_new_tokens, context_size):
+    for _ in range(max_new_tokens):
+
+
+        idx_cond = idx[:, -context_size:]
+
+        # Get the predictions
+        with torch.no_grad():
+            logits = model(idx_cond)
+
+
+        logits = logits[:, -1, :]
+
+
+        idx_next = torch.argmax(logits, dim=-1, keepdim=True)
+
+        idx = torch.cat((idx, idx_next), dim=1)
+
+    return idx
+
+
+
+def generate_and_print_sample(model, tokenizer, device, start_context):
+    model.eval()
+    context_size = model.pos_emb.weight.shape[0]
+    encoded = text_to_token_ids(start_context, tokenizer).to(device)
+    with torch.no_grad():
+        token_ids = generate_text_simple(
+            model=model, idx=encoded,
+            max_new_tokens=50, context_size=context_size
+        )
+        decoded_text = token_ids_to_text(token_ids, tokenizer)
+        print(decoded_text.replace("\n", " "))
+    model.train()
+    
+    
+    
