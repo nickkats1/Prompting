@@ -14,6 +14,7 @@ A collection of eight educational notebooks and a decoder-only Transformer imple
 
 This project explores how language models represent text, predict tokens, and use instructions and external information. The notebooks combine explanations with executable examples and saved outputs.
 
+- **Base Model From Scratch**: Full GPT2 styled LLM from scratch
 - **Text representations:** Tokenization, TF-IDF, embeddings, and contextual BERT vectors.
 - **Language modeling:** A character-level Transformer built from individual attention heads, feed-forward layers, and residual blocks.
 - **Prompting and generation:** GPT-2 sampling, message roles, worked reasoning examples, and Qwen3 thinking mode.
@@ -33,6 +34,7 @@ Open a topic directly or follow the sequence below. Saved outputs let you inspec
 | 05 | [Prompting and thinking](examples/prompting.ipynb) | Message roles, standard and reasoning model examples. |
 | 06 | [Tool calling](examples/tool-calling.ipynb) | Execute a requested web search and return its results to the conversation. |
 | 07 | [Supervised fine-tuning and DPO](examples/sft-dpo.ipynb) | Train Llama 3.2 1B on instructions and preference pairs, evaluate, and save checkpoints. |
+| 08 | [Base Model From Scratch](examples/base_model_from_scratch.ipynb) | GPT2 styled model from scratch consisting of text data from sources.
 
 ## Quick start
 
